@@ -52,9 +52,15 @@ impl Ion {
     }
 
     /// Conversion factor: (mg/L of ion) × factor = ppm-as-CaCO₃.
-    /// factor = 50 / equivalent_weight
+    ///
+    /// Derived from the CaCO₃ reference convention used in water hardness
+    /// reporting: ppm-as-CaCO₃ = (mg/L) × (EW_CaCO₃ / EW_ion), where
+    /// EW_CaCO₃ = MW_CaCO₃ / valence = 100.087 / 2 ≈ 50 g/eq.
     pub fn ppm_caco3_factor(&self) -> f64 {
-        50.0 / self.equivalent_weight()
+        /// Equivalent weight of CaCO₃ (g/eq): MW 100.087 g/mol ÷ valence 2.
+        /// Used as the universal reference for ppm-as-CaCO₃ hardness units.
+        const CACO3_EQUIVALENT_WEIGHT: f64 = 50.044;
+        CACO3_EQUIVALENT_WEIGHT / self.equivalent_weight()
     }
 
     /// Whether this ion contributes to GH (general hardness).
@@ -88,6 +94,7 @@ impl Compound {
         Compound::KHCO3,
         Compound::NaCl,
     ];
+    const WATER_MOLAR_MASS:f64 = 18.015;
 
     pub fn name(&self) -> &'static str {
         match self {
@@ -139,12 +146,13 @@ impl Compound {
 
     /// Molar mass of the hydrated form (g/mol), or anhydrous if no hydrate.
     pub fn mw_hydrated(&self) -> f64 {
-        match self {
-            Compound::CaCl2 => 147.015, // +2×18.015
-            Compound::MgSO4 => 246.473, // +7×18.015
-            Compound::MgCl2 => 203.301, // +6×18.015
-            _ => self.mw_anhydrous(),
-        }
+        let multiplier = match self {
+            Compound::CaCl2 => 2.0,
+            Compound::MgSO4 => 7.0,
+            Compound::MgCl2 => 6.0,
+            _ => 0.0, 
+        };
+        self.mw_anhydrous()+multiplier*Self::WATER_MOLAR_MASS
     }
 
     pub fn mw(&self, use_anhydrous: bool) -> f64 {
