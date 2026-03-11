@@ -1,0 +1,22 @@
+[package]
+name = "mincalc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dioxus = { version = "0.6", features = ["web"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
