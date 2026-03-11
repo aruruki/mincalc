@@ -1,5 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 /// All ions tracked by the application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Ion {
     Ca,
     Mg,
@@ -67,7 +69,7 @@ impl Ion {
 }
 
 /// Supported salts / compounds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Compound {
     CaCl2,
     MgSO4,

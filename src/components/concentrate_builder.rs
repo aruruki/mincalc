@@ -3,6 +3,7 @@ use dioxus::prelude::*;
 use crate::{
     chemistry::compounds::Compound,
     state::{AppState, Concentrate},
+    storage,
 };
 
 // ---------------------------------------------------------------------------
@@ -36,6 +37,8 @@ pub fn ConcentrateBuilder() -> Element {
                 AddConcentrateForm {
                     on_save: move |c: Concentrate| {
                         state.write().add_concentrate(c);
+                        let s = state.read();
+                        storage::save_concentrates(&s.concentrates, s.next_id);
                         show_form.set(false);
                     }
                 }
@@ -58,19 +61,31 @@ pub fn ConcentrateBuilder() -> Element {
                             label: "GH Concentrates",
                             description: "Raise general hardness (Ca²⁺ / Mg²⁺)",
                             concentrates: concs.iter().filter(|c| c.compound.affects_gh()).cloned().collect::<Vec<_>>(),
-                            on_remove: move |id| state.write().remove_concentrate(id),
+                            on_remove: move |id| {
+                                state.write().remove_concentrate(id);
+                                let s = state.read();
+                                storage::save_concentrates(&s.concentrates, s.next_id);
+                            },
                         }
                         ConcentrateGroup {
                             label: "KH Concentrates",
                             description: "Raise carbonate hardness / alkalinity (HCO₃⁻)",
                             concentrates: concs.iter().filter(|c| c.compound.affects_kh()).cloned().collect::<Vec<_>>(),
-                            on_remove: move |id| state.write().remove_concentrate(id),
+                            on_remove: move |id| {
+                                state.write().remove_concentrate(id);
+                                let s = state.read();
+                                storage::save_concentrates(&s.concentrates, s.next_id);
+                            },
                         }
                         ConcentrateGroup {
                             label: "Other",
                             description: "Salinity / flavour (no effect on KH or GH)",
                             concentrates: concs.iter().filter(|c| !c.compound.affects_gh() && !c.compound.affects_kh()).cloned().collect::<Vec<_>>(),
-                            on_remove: move |id| state.write().remove_concentrate(id),
+                            on_remove: move |id| {
+                                state.write().remove_concentrate(id);
+                                let s = state.read();
+                                storage::save_concentrates(&s.concentrates, s.next_id);
+                            },
                         }
                     }
                 }

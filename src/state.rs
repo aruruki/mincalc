@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use serde::{Deserialize, Serialize};
+
 use crate::chemistry::{
     compounds::{Compound, Ion},
     conversions::{ion_profile_per_ml, ml_needed, potency_to_grams},
@@ -19,7 +21,7 @@ pub enum Tab {
 // Concentrate
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Concentrate {
     pub id: u32,
     pub name: String,

@@ -1,6 +1,7 @@
 mod chemistry;
 mod components;
 mod state;
+mod storage;
 
 use dioxus::prelude::*;
 use state::{AppState, Tab};
@@ -16,8 +17,16 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    // Single global signal holding all app state
-    use_context_provider(|| Signal::new(AppState::default()));
+    // Single global signal holding all app state.
+    // Hydrate concentrates from localStorage if available.
+    use_context_provider(|| {
+        let mut state = AppState::default();
+        if let Some((concentrates, next_id)) = storage::load_concentrates() {
+            state.concentrates = concentrates;
+            state.next_id = next_id;
+        }
+        Signal::new(state)
+    });
 
     rsx! {
         document::Stylesheet { href: asset!("/assets/tailwind.css") }
