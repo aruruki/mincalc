@@ -49,25 +49,62 @@ jobs:
 
       - name: Debug build output
         run: |
-          echo "Checking dist/..."
+          echo "=== Current directory ==="
+          pwd
+          echo "=== All files in current dir ==="
+          ls -la
+          echo "=== Checking dist/ ==="
           ls -la dist/ 2>/dev/null || echo "dist/ not found"
-          echo "Checking target/dx/mincalc/release/web/..."
-          ls -la target/dx/mincalc/release/web/ 2>/dev/null || echo "target/dx build output not found"
-          echo "Searching for all HTML files..."
-          find . -name "*.html" -type f 2>/dev/null | head -10
+          echo "=== Checking target/ ==="
+          ls -la target/ 2>/dev/null || echo "target/ not found"
+          echo "=== Checking target/dx/ ==="
+          ls -la target/dx/ 2>/dev/null || echo "target/dx/ not found"
+          echo "=== Deep check for target/dx/ ==="
+          find target/dx -type d 2>/dev/null | head -20 || echo "no target/dx/"
+          echo "=== Searching for ALL HTML files ==="
+          find . -name "*.html" -type f 2>/dev/null
+          echo "=== Searching for any 'public' directories ==="
+          find . -type d -name "public" 2>/dev/null
+          echo "=== Dioxus.toml content ==="
+          cat Dioxus.toml 2>/dev/null || echo "No Dioxus.toml found"
 
       - name: Prepare dist for upload
         run: |
           # Ensure dist/ exists and contains index.html
-          if [ ! -f "dist/index.html" ]; then
-            echo "dist/index.html not found, checking Dioxus output location..."
-            DX_OUTPUT="target/dx/mincalc/release/web"
-            if [ -f "$DX_OUTPUT/index.html" ]; then
-              echo "Found Dioxus output at $DX_OUTPUT, copying to dist/"
+          if [ -f "dist/index.html" ]; then
+            echo "Found dist/index.html"
+          else
+            echo "dist/index.html not found, searching for Dioxus output..."
+            
+            # Try various possible Dioxus output locations
+            POSSIBLE_LOCATIONS=(
+              "target/dx/mincalc/release/web"
+              "target/dx/mincalc/release/web/public"
+              "target/dx/release/web"
+              "target/dx/release/web/public"
+              "target/dx/mincalc/release/dist"
+              "target/dx/release/dist"
+              "target/dx/mincalc/release/public"
+              "target/dx/release/public"
+            )
+            
+            FOUND=""
+            for loc in "${POSSIBLE_LOCATIONS[@]}"; do
+              if [ -f "$loc/index.html" ]; then
+                echo "Found Dioxus output at: $loc"
+                FOUND="$loc"
+                break
+              fi
+            done
+            
+            if [ -n "$FOUND" ]; then
+              echo "Copying from $FOUND to dist/"
               mkdir -p dist
-              cp -r "$DX_OUTPUT"/* dist/
+              cp -r "$FOUND"/* dist/
             else
-              echo "ERROR: index.html not found in expected locations"
+              echo "ERROR: index.html not found in any expected location"
+              echo "Listing all files in target/:"
+              find target/ -type f -name "*.html" 2>/dev/null || echo "No HTML files found"
               exit 1
             fi
           fi
