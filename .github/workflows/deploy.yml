@@ -45,8 +45,32 @@ jobs:
       - name: Build web app
         run: dx build --platform web --release
 
-      - name: Fix SPA routing for GitHub Pages
-        run: cp dist/index.html dist/404.html
+      - name: Debug build output
+        run: |
+          echo "Checking dist/..."
+          ls -la dist/ 2>/dev/null || echo "dist/ not found"
+          echo "Checking target/dx/mincalc/release/web/..."
+          ls -la target/dx/mincalc/release/web/ 2>/dev/null || echo "target/dx build output not found"
+          echo "Searching for all HTML files..."
+          find . -name "*.html" -type f 2>/dev/null | head -10
+
+      - name: Prepare dist for upload
+        run: |
+          # Ensure dist/ exists and contains index.html
+          if [ ! -f "dist/index.html" ]; then
+            echo "dist/index.html not found, checking Dioxus output location..."
+            DX_OUTPUT="target/dx/mincalc/release/web"
+            if [ -f "$DX_OUTPUT/index.html" ]; then
+              echo "Found Dioxus output at $DX_OUTPUT, copying to dist/"
+              mkdir -p dist
+              cp -r "$DX_OUTPUT"/* dist/
+            else
+              echo "ERROR: index.html not found in expected locations"
+              exit 1
+            fi
+          fi
+          echo "dist/ contents:"
+          ls -la dist/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
