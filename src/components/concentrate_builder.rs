@@ -157,11 +157,10 @@ fn ConcentrateCard(concentrate: Concentrate, on_remove: EventHandler<()>) -> Ele
             div { class: "bg-gray-950 rounded-lg p-3 space-y-1",
                 div { class: "flex justify-between text-sm",
                     span { class: "text-gray-500", "Potency" }
-                    span { class: "font-mono text-gray-200",
+                    span {
+                        class: "font-mono text-gray-200",
+                        title: "{concentrate.compound.primary_ion().label()} as CaCO₃",
                         {format!("{:.2} ppm/mL", concentrate.potency_ppm_per_ml)}
-                        span { class: "text-gray-600 text-xs ml-1",
-                            "({concentrate.compound.primary_ion().label()} as CaCO₃)"
-                        }
                     }
                 }
                 div { class: "flex justify-between text-sm",
