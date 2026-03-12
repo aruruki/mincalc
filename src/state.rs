@@ -126,6 +126,8 @@ pub struct AppState {
     pub target_hco3: f64,
     pub target_na: f64,
     pub target_k: f64,
+    /// Concentrate IDs the user wants to use for manual ion mode; empty = use all.
+    pub manual_ion_filter: HashSet<u32>,
 }
 
 impl Default for AppState {
@@ -143,6 +145,7 @@ impl Default for AppState {
             target_hco3: 0.0,
             target_na: 0.0,
             target_k: 0.0,
+            manual_ion_filter: HashSet::new(),
         }
     }
 }
@@ -157,6 +160,7 @@ impl AppState {
     pub fn remove_concentrate(&mut self, id: u32) {
         self.concentrates.retain(|c| c.id != id);
         self.compound_filter.remove(&id);
+        self.manual_ion_filter.remove(&id);
     }
 
     pub fn concentrate_by_id(&self, id: u32) -> Option<&Concentrate> {
@@ -240,6 +244,7 @@ impl AppState {
 
     /// For each target ion, find the concentrate(s) that supply it and
     /// calculate mL needed. Returns one solution (not ranked — additive).
+    /// Respects `manual_ion_filter`: if non-empty, only uses selected concentrates.
     pub fn solve_manual(&self) -> RecipeSolution {
         let targets: &[(Ion, f64)] = &[
             (Ion::Ca, self.target_ca),
@@ -251,16 +256,26 @@ impl AppState {
 
         let mut usages: Vec<ConcentrateUsage> = Vec::new();
 
+        // Determine available concentrates based on filter
+        let use_filter = !self.manual_ion_filter.is_empty();
+
         for (ion, target_ppm) in targets {
             if *target_ppm <= 0.0 {
                 continue;
             }
-            // Find concentrates whose primary ion matches
+            // Find concentrates whose primary ion matches and are in filter (if filter is set)
             let matching: Vec<&Concentrate> = self
                 .concentrates
                 .iter()
-                .filter(|c| c.primary_ion() == *ion)
+                .filter(|c| {
+                    c.primary_ion() == *ion
+                        && (!use_filter || self.manual_ion_filter.contains(&c.id))
+                })
                 .collect();
+
+            if matching.is_empty() {
+                continue;
+            }
 
             if matching.len() == 1 {
                 let c = matching[0];

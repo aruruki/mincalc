@@ -208,20 +208,29 @@ fn ModeTargetKhGh() -> Element {
 
 #[component]
 fn ModeManualIons() -> Element {
-    let state = use_context::<Signal<AppState>>();
+    let mut state = use_context::<Signal<AppState>>();
     let solution = state.read().solve_manual();
 
     // Which ions can be targeted (only those with an available concentrate)
     let available_ions: Vec<Ion> = {
         let s = state.read();
+        let use_filter = !s.manual_ion_filter.is_empty();
         let mut ions = vec![];
         for ion in [Ion::Ca, Ion::Mg, Ion::HCO3, Ion::Na, Ion::K] {
-            if s.concentrates.iter().any(|c| c.primary_ion() == ion) {
+            // Check if there's a concentrate for this ion (respecting filter)
+            let has_conc = s.concentrates.iter().any(|c| {
+                c.primary_ion() == ion
+                    && (!use_filter || s.manual_ion_filter.contains(&c.id))
+            });
+            if has_conc {
                 ions.push(ion);
             }
         }
         ions
     };
+
+    let concentrates = state.read().concentrates.clone();
+    let filter = state.read().manual_ion_filter.clone();
 
     rsx! {
         div { class: "space-y-6",
@@ -239,6 +248,44 @@ fn ModeManualIons() -> Element {
                     div { class: "space-y-3",
                         for ion in &available_ions {
                             IonRow { ion: *ion }
+                        }
+                    }
+                }
+            }
+
+            // Concentrate filter
+            if !concentrates.is_empty() {
+                div { class: "bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4",
+                    h3 { class: "text-sm font-semibold text-gray-400 uppercase tracking-wide",
+                        "Use concentrates (all if none selected)"
+                    }
+                    div { class: "flex flex-wrap gap-2",
+                        for conc in &concentrates {
+                            {
+                                let id = conc.id;
+                                let checked = filter.contains(&id);
+                                let name = conc.name.clone();
+                                rsx! {
+                                    label {
+                                        class: "flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full cursor-pointer transition-colors",
+                                        class: if checked { "bg-blue-800/60 text-blue-300" } else { "bg-gray-800 text-gray-400 hover:text-gray-200" },
+                                        input {
+                                            r#type: "checkbox",
+                                            class: "hidden",
+                                            checked,
+                                            onchange: move |_| {
+                                                let mut s = state.write();
+                                                if s.manual_ion_filter.contains(&id) {
+                                                    s.manual_ion_filter.remove(&id);
+                                                } else {
+                                                    s.manual_ion_filter.insert(id);
+                                                }
+                                            },
+                                        }
+                                        "{name}"
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -271,14 +318,19 @@ fn IonRow(ion: Ion) -> Element {
         }
     };
 
-    // Which concentrates serve this ion
-    let conc_names: Vec<String> = state
-        .read()
-        .concentrates
-        .iter()
-        .filter(|c| c.primary_ion() == ion)
-        .map(|c| c.name.clone())
-        .collect();
+    // Which concentrates serve this ion (respecting filter)
+    let conc_names: Vec<String> = {
+        let s = state.read();
+        let use_filter = !s.manual_ion_filter.is_empty();
+        s.concentrates
+            .iter()
+            .filter(|c| {
+                c.primary_ion() == ion
+                    && (!use_filter || s.manual_ion_filter.contains(&c.id))
+            })
+            .map(|c| c.name.clone())
+            .collect()
+    };
 
     rsx! {
         div { class: "flex items-center gap-3",
